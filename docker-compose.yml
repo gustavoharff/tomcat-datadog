@@ -1,0 +1,46 @@
+version: "3.7"
+
+services:
+  datadog:
+    container_name: datadog
+    environment:
+      DD_API_KEY: xxxxxxxxxxxx
+      DD_APM_ENABLED: true
+      DD_SITE: "datadoghq.com"
+      DD_LOGS_ENABLED: true
+      DD_APM_NON_LOCAL_TRAFFIC: true
+      DD_LOGS_FORCE_USE_TCP: true
+    build:
+      context: ./datadog
+      dockerfile: Dockerfile
+    pid: "host"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/proc/:/host/proc/:ro"
+      - "/sys/fs/cgroup/:/host/sys/fs/cgroup:ro"
+    ports:
+      - "127.0.0.1:8126:8126/tcp"
+      - "127.0.0.1:10516:10516/tcp"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.6
+  app:
+    container_name: tomcat
+    build:
+      context: ./tomcat
+      dockerfile: Dockerfile
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.5
+    environment:
+      DD_TRACE_AGENT_URL: http://10.5.0.6:8126
+    ports:
+      - "8080:8080"
+
+networks:
+  vpcbr:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.5.0.0/16
+         gateway: 10.5.0.1
